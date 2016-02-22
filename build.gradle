@@ -12,6 +12,7 @@ buildscript {
     dependencies {
         classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
         classpath "io.spring.gradle:dependency-management-plugin:0.4.0.RELEASE"
+        classpath 'com.bmuschko:gradle-docker-plugin:2.6.5'
     }
 }
 
@@ -19,6 +20,7 @@ apply plugin: 'idea'
 apply plugin: 'spring-boot'
 apply plugin: 'java'
 apply plugin: "io.spring.dependency-management"
+apply plugin: 'com.bmuschko.docker-remote-api'
 
 repositories {
     mavenCentral()
@@ -51,6 +53,35 @@ dependencies {
 
 bootRun {
     addResources = true
+}
+
+
+def dockerPort = 8761
+
+docker {
+    url = 'http://192.168.99.100:2376'
+    //https://github.com/bmuschko/gradle-docker-plugin: Pending to solve deploy
+    //certPath = new File(System.properties['user.home'], '.docker/machine/machines/ms')
+}
+
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+
+task createDockerfile(type: Dockerfile) {
+    destFile = project.file('build/Dockerfile')
+    from 'java:8'
+    maintainer 'Alberto Navarrete <alnavart@gmail.com>'
+    exposePort dockerPort
+    copyFile "libs/${jar.baseName}-${jar.version}.jar", "${jar.baseName}-${jar.version}.jar"
+
+    // Regarding settings of java.security.egd, see http://wiki.apache.org/tomcat/HowTo/FasterStartUp#Entropy_Source
+    entryPoint 'java','-Djava.security.egd=file:/dev/./urandom','-jar',"${jar.baseName}-${jar.version}.jar"
+}
+
+task buildDockerImage(type: DockerBuildImage) {
+    dependsOn createDockerfile
+    inputDir = createDockerfile.destFile.parentFile
+    tag = "alnavart-springboot/workshop-${jar.baseName}"
 }
 
 task wrapper(type: Wrapper) {
