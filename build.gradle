@@ -59,9 +59,8 @@ bootRun {
 def dockerPort = 8761
 
 docker {
-    url = 'http://192.168.99.100:2376'
-    //https://github.com/bmuschko/gradle-docker-plugin: Pending to solve deploy
-    //certPath = new File(System.properties['user.home'], '.docker/machine/machines/ms')
+    url = 'https://192.168.99.100:2376'
+    certPath = new File(System.properties['user.home'], '.docker/machine/machines/default')
 }
 
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
@@ -81,7 +80,7 @@ task createDockerfile(type: Dockerfile) {
 task buildDockerImage(type: DockerBuildImage) {
     dependsOn createDockerfile
     inputDir = createDockerfile.destFile.parentFile
-    tag = "alnavart-springboot/workshop-${jar.baseName}"
+    tag = "alnavart/${jar.baseName}:${jar.version}"
 }
 
 task wrapper(type: Wrapper) {
